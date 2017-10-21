@@ -1,0 +1,513 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Extraterrestrial Association</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+             }
+    </style>
+</head>
+<body>
+<style type="text/css">
+#divFloat {
+ position:absolute;
+ top:50%;
+ left:50%;
+ right:50%;
+ bottom:50%;
+ margin:-250px;
+ margin-left:-392px;
+ }
+</style>
+<script type="text/javascript">
+    
+var myWidth = 0, myHeight = 0;
+
+function alertSize() {
+ 
+  if( typeof( window.innerWidth ) === 'number' ) {
+    //Non-IE
+    myWidth = window.innerWidth;
+    myHeight = window.innerHeight;
+  } else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) {
+    //IE 6+ in 'standards compliant mode'
+    myWidth = document.documentElement.clientWidth;
+    myHeight = document.documentElement.clientHeight;
+  } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+    //IE 4 compatible
+    myWidth = document.body.clientWidth;
+    myHeight = document.body.clientHeight;
+  }
+  //window.alert( 'Width = ' + myWidth );
+  //window.alert( 'Height = ' + myHeight );
+}
+
+alertSize();
+
+var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+
+//get size of browser window
+
+function preload() {
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('city rip','assets/city rip.png');
+    game.load.image('ground', 'assets/platform.png');
+    game.load.image('star', 'assets/star.png');
+    game.load.spritesheet('dude', 'assets/rectangle player.png',16, 32);
+    game.load.spritesheet('slime', 'assets/rectangle slime.png', 24, 24,6);
+    game.load.spritesheet('flower layer', 'assets/slime.png',400,5);
+    game.load.spritesheet('gun1', 'assets/gun 1.png',18,7,2);
+    game.load.spritesheet('blue pixel', 'assets/bluePixel.png',2,2);
+    game.load.spritesheet('red pixel', 'assets/red pixel.png',2,2);
+}
+
+var player;
+var platforms;
+var cursors;
+var slime;
+var gun1;
+var stars;
+var score = 0;
+var scoreText;
+var endText;
+var spaceKey;
+var shootKey;
+var ledge;
+var flowers;
+var pressedleft = false;
+var bluePixels;
+var redPixels;
+var loopDebug = 0;
+var playerHasGun = false;
+var gunEmitter;
+var spaceKeyReleased = true;
+var slimeMeanderNumber =11;
+
+function create() {
+    
+    //  We're going to be using physics, so enable the Arcade Physics system
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+    
+    //  A simple background for our game
+    game.add.sprite(0, 0, 'sky');
+    game.add.sprite(0,0,'city rip');
+    game.add.sprite(800,0,'city rip');
+    
+   
+    
+    //
+    //create patforms *****  create patforms ***** create patforms ***** create patforms ***** create patforms ***** create patforms *****
+    platforms = game.add.group();
+    //We will enable physics for any object that is created in this group
+    platforms.enableBody = true;
+    platforms = game.add.physicsGroup();
+    //platforms.body.drag.x = 0.5;
+    //Here we create the ground.
+    var ground = platforms.create(0, game.world.height - 32, 'ground');
+    var ground2 = platforms.create(400, game.world.height - 32, 'ground');
+    var ground3 = platforms.create(800, game.world.height - 32, 'ground');
+    var ground4 = platforms.create(1200, game.world.height - 32, 'ground');
+    //Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    
+    //  This stops it from falling away when you jump on it
+    platforms.setAll('body.immovable', true);
+    //  Now let's create two ledges
+    ledge = platforms.create(400, 450, 'ground');
+    ledge.body.immovable = true;
+    ledge = platforms.create(-100, 350, 'ground');
+    ledge.body.immovable = true;
+    
+    //create player ***** create player ***** create player ***** create player ***** create player ***** create player *****
+    // The player and and enemy and their settings
+    player = game.add.sprite(200, game.world.height - 300, 'dude');
+    //  We need to enable physics on the player
+    game.physics.arcade.enable(player);
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.body.bounce.y = 0.0;
+    player.body.gravity.y = 700;
+    player.body.collideWorldBounds = true;
+    player.enableBody = true;        
+    //create slime ***** create slime ***** //create slime ***** create slime ***** //create slime ***** create slime *****
+    slime = game.add.sprite(80,400,'slime',0);//(x,y,sprite)
+    game.physics.arcade.enable(slime);
+    slime.body.bounce.y = 0.0;
+    slime.body.gravity.y = 500;
+    slime.body.collideWorldBounds = true;
+    slime.alpha = .8;
+    slime.animations.add('slime left',[0,1]);
+    slime.animations.add('slime right',[2,3]);
+    slime.animations.play('slime left', 3, true);
+    //Our two animations, walking left and right.
+    //player.animations.add('left', [1,2,3,4], 10, true);
+    //player.animations.add('right', [5,6,7,8], 10, true);
+    //slime.animations.add('slime_neutral');
+        
+    //create pixels ***** create pixels ***** create pixels ***** create pixels ***** create pixels ***** create pixels *****
+    bluePixels = game.add.group();
+    bluePixels.enableBody = true;  
+    game.physics.arcade.enable(bluePixels);
+   
+    
+    createPixels();
+   
+    //    pixel.body.bounce.y = 0.0;
+    //    pixel.body.gravity.y = 500;
+    //    pixels.body.collideWorldBounds = true;
+    //    pixel.body.bounce.y = 0.7;
+    
+    //add a gun ***** add a gun ***** add a gun ***** add a gun ***** add a gun ***** add a gun ***** add a gun ***** add a gun
+    gun1 = game.add.sprite(player.x+32,player.y,'gun1');
+    game.physics.arcade.enable(gun1);
+    gun1.body.bounce.y = 0.0;
+    gun1.body.gravity.y = 400;
+    gun1.scale.x = 1;
+    gun1.body.collideWorldBounds = true;
+    //gun1.anchor.setTo(.5, 1); //so it flips around its middle
+    
+     //create emitter ***** create emitter ***** create emitter ***** create emitter ***** create emitter ***** create emitter *****
+    gunEmitter = game.add.emitter(gun1.x + 18, gun1.y + 2);
+    gunEmitter.bounce.setTo(0.5, 0.5);
+    gunEmitter.setXSpeed(200, 200);
+    gunEmitter.setYSpeed(0, 0);
+    gunEmitter.makeParticles('blue pixel', 0, 100, .0001, true);
+    gunEmitter.minParticleScale = 3.5;
+    gunEmitter.maxParticles = 2;
+    //leftEmitter.angularDrag = 300;
+    //gunEmitter.start(false, 5000, 0); 
+    
+    //  Finally some stars to collect
+    //add stars ***** add stars ***** add stars ***** add stars ***** add stars ***** add stars ***** add stars ***** add stars *****
+    stars = game.add.group();
+    //  We will enable physics for any star that is created in this group
+    stars.enableBody = true;
+    //  Here we'll create 12 of them evenly spaced apart
+    for (var i = 0; i < 20; i++)
+    {
+    //  Create a star inside of the 'stars' group
+        var star = stars.create(i * 70, 0, 'star');
+    //  Let gravity do its thing
+        star.body.gravity.y = 300;
+    //  This just gives each star a slightly random bounce value
+        star.body.bounce.y = 0.4 + Math.random() * 0.05;
+    }
+    
+    // add score
+
+    scoreText = game.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#355' });
+
+    //  Our controls.
+    cursors = game.input.keyboard.createCursorKeys();
+    spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    shootKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
+    //gun1.anchor.setTo(.5, 1); //so it flips around its middle
+    //sprite.scale.x = 1; //facing default direction
+    //gun1.scale.x = -1; //flipped
+   
+}
+function update() {
+    //slime.animations.play('slime left');
+    gunEmitter.start(false, 5000, 1);
+    bluePixels.forEachAlive(function(pixel){
+        if(pixel.body.velocity.y === 0)
+        {
+        pixel.body.drag.x = 100;   
+        }         
+        },this);
+  
+    gunEmitter.on = false;
+    //  Collide the player and the stars with the platforms
+    gunEmitter.x = gun1.x + 18, 
+    gunEmitter.y = gun1.y + 1;
+    gunEmitter.setXSpeed(500, 500);
+    gunEmitter.gravity = 0;
+    
+    game.physics.arcade.collide(bluePixels, platforms);
+    game.physics.arcade.collide(player, platforms);
+    game.physics.arcade.collide(stars, platforms);
+    game.physics.arcade.collide(slime, platforms);
+    game.physics.arcade.collide(gun1, platforms);
+    game.physics.arcade.collide(gunEmitter, platforms);
+        //disable collisions below
+        //player.body.checkCollision.down = false;
+    
+    if (slime.body.velocity.x > 0)
+    {
+        slime.animations.play('slime right', 3, true);
+    }
+    else
+    {
+        slime.animations.play('slime left', 3, true);
+    }
+    if (slimeMeanderNumber < game.rnd.integerInRange(0,20)&& slime.body.touching.down)
+    {
+       slime.body.velocity.y = -300 + game.rnd.integerInRange(0,100);
+       slime.body.velocity.x = 30;
+       if (slime.body.x > 770)
+       {
+           slimeMeanderNumber = 15;
+       }
+    }
+    else if(slimeMeanderNumber > game.rnd.integerInRange(0,20)&& slime.body.touching.down)
+    {
+       slime.body.velocity.y = -300 + game.rnd.integerInRange(0,100);
+       slime.body.velocity.x = -30 ;
+       if (slime.body.x === 0)
+       {
+           slimeMeanderNumber = 7;
+       }
+    }
+    //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
+    game.physics.arcade.overlap(player, stars, collectStar, null, this);
+    //  Reset the players velocity (movement)
+    player.body.velocity.x = 0;
+    
+    if (cursors.left.isDown && player.alive)
+    {
+        //  Move to the left
+        player.body.velocity.x = -150;
+        pressedleft = true;
+        if (playerHasGun)
+        {
+        gun1.frame = 1;
+
+        //player.enableBody = false;
+        }
+        //player.animations.play('left');
+    }
+    else if (cursors.right.isDown && player.alive)
+    {
+        //  Move to the right
+       
+        pressedleft = false;
+        player.body.velocity.x = 150;
+        if (playerHasGun)
+        {
+        gun1.frame = 0;
+        gun1.body.x = player.body.x+8;
+        gun1.body.y = player.body.y+12;
+        } 
+        //player.animations.play('right');
+    }
+    else
+    {
+      
+        
+    }
+    
+    if (pressedleft && playerHasGun && player.alive)
+    {
+    gun1.frame = 1; //flipped
+    gun1.body.x = player.body.x-8;
+    gun1.body.y = player.body.y+12;
+    gunEmitter.setXSpeed(-200+player.body.velocity.x, -200+player.body.velocity.x);
+    gunEmitter.x = gun1.x - 18, 
+    gunEmitter.y = gun1.y -1;
+     //  Stand still
+        //player.animations.stop();
+    }
+    
+     if (playerHasGun && player.alive && pressedleft === false)
+    {
+    gun1.frame = 0; //flipped
+    gun1.body.x = player.body.x+8;
+    gun1.body.y = player.body.y+12;
+    gunEmitter.setXSpeed(200+player.body.velocity.x, 200+player.body.velocity.x);
+    gunEmitter.x = gun1.x + 18, 
+    gunEmitter.y = gun1.y +1;
+     //  Stand still
+        //player.animations.stop();
+    }
+        
+    //  Allow the player to jump if they are touching the ground.
+    if (spaceKey.isDown && player.body.touching.down && spaceKeyReleased)
+        {
+            player.body.velocity.y = -500;
+            spaceKeyReleased = false;
+        }
+    
+    if (spaceKey.isDown === false)
+        {
+            spaceKeyReleased = true;
+        }
+    
+    game.physics.arcade.overlap(slime, player, enemyHitsPlayer, null, this);
+    if (player.alive)
+       {
+        game.physics.arcade.overlap(gun1, player, pickUpGun, null, this);
+       }
+       
+    if (shootKey.isDown && playerHasGun && player.alive)
+        {
+        gunEmitter.start(false, 5000, 10); 
+        }
+        
+    game.physics.arcade.overlap(slime, bluePixels, collisionHandler, null, this);
+    game.physics.arcade.collide(gunEmitter, slime, killSlime, null, this);
+    
+}
+function killSlime()
+{
+    slime.kill();
+}
+function pickUpGun()
+{   
+    if (playerHasGun === false)
+    {
+    gun1.body.gravity.y = 0;
+    gun1.body.x = player.body.x-8;
+    gun1.body.y = player.body.y+12;
+    //gun1.body.velocity.x = player.body.velocity.x;
+    //gun1.body.velocity.y = player.body.velocity.y;
+    playerHasGun = true;
+    }
+}
+function DropGun()
+{
+    gun1.body.gravity.y = 400;
+    
+}
+function collectStar (player, star) {
+    
+    // Removes the star from the screen
+    star.kill();
+
+    //  Add and update the score
+    score += 10;
+    scoreText.text= 'Score: ' + score;
+
+}
+function createPixels() {
+ var velocityCheckx = true;
+ var velocityChecky = true;
+    for (var y = player.y; y <  player.y+32; y++)
+    {
+        for (var x = player.x; x < player.x+16; x++)
+        {
+            var pixel = bluePixels.create(x, y, 'red pixel' );
+            pixel.body.drag.x =10;
+            pixel.lifespan = 7500*Math.random();
+            pixel.body.bounce.x = 0.4 + Math.random() * 0.05;
+            pixel.body.collideWorldBounds = true;
+            //gives each pixel a slightly random bounce value
+            //pixel.body.bounce.y = 0.4 + Math.random() * 0.11;
+            if (velocityCheckx && velocityChecky)
+            {
+            pixel.body.velocity.x=75*(-Math.random());
+            pixel.body.velocity.y=75*Math.random();
+            pixel.body.gravity.y = 200;
+            velocityCheckx = false;
+            }
+            else if (velocityCheckx === false && velocityChecky)
+            {
+            pixel.body.velocity.x=175*(-Math.random());
+            pixel.body.velocity.y=175*(-Math.random());
+            pixel.body.gravity.y = 200;
+            velocityChecky = false;
+            }
+            else if (velocityCheckx === false && velocityChecky === false)
+            {
+            pixel.body.velocity.x=75*(Math.random());
+            pixel.body.velocity.y=75*(Math.random());
+            pixel.body.gravity.y = 200;
+            velocityCheckx = true;
+            }
+            else if (velocityCheckx === true && velocityChecky === false)
+            {
+            pixel.body.velocity.x=75*(Math.random());
+            pixel.body.velocity.y=75*(-Math.random());
+            pixel.body.gravity.y = 200;
+            velocityChecky = true;
+            loopDebug ++;
+            //pixel.body.velocity.x=10*Math.random();
+            
+                
+          
+            }
+        }   
+    }
+}
+
+function enemyHitsPlayer()
+{
+    player.kill();
+    gun1.body.gravity.y = 400;
+    createPixels();
+    deathScreen();
+    
+    //game.time.events.loop(Phaser.Timer.SECOND*3, enemyEatsPlayer, this);
+    
+    //pixels.forEach(game.physics.arcade.moveToObject, game.physics.arcade,false,slime,5000,2000);
+}
+function createPixelFriction()
+{
+    bluePixels.forEachAlive(function(pixel){
+        if(pixel.body.velocity.y === 0)
+        {
+        pixel.body.drag.x = 100;   
+        }         
+        },this); 
+}
+function enemyEatsPlayer()
+{
+    //moveToObject(displayObject, destination, speed, maxTime)
+    //disable pixel platform detection to go through to slime
+//    bluePixels.forEach(function(pixel)
+//    {
+//    pixel.body.checkCollision.down=false;
+//    },this);  
+//    
+//     bluePixels.forEach(function(pixel)
+//    {
+//    pixel.body.gravity.y=0;
+//    },this);  
+    
+    
+//    bluePixels.forEach(function(pixel)
+//    {
+//    this.physics.arcade.moveToObject(pixel, slime, 300, 1500);
+//    }, this);
+
+      //  pixels.forEach(game.physics.arcade.moveToObject, game.physics.arcade,false,slime,5000,2000);
+        
+
+   
+}
+
+function collisionHandler (slime, pixel) {
+
+    //  If the pixel collides with a slime it gets eaten :)
+   // pixel.kill();
+
+    }
+    
+
+function render() 
+{
+
+    game.debug.text("Time until event: " + game.time.events.duration, 32, 32);
+    game.debug.text("length of children in pixels group" + bluePixels.length, 32, 46);
+    game.debug.text("total children in pixels" + bluePixels.countLiving(), 32, 60);
+    game.debug.text("slime pos" + slime.body.position, 32, 74);
+//   bluePixels.forEachAlive(function(pixel){
+//       game.debug.body(pixel);
+//   },this);
+   game.debug.body(player);
+   game.debug.body(gun1);
+   game.debug.body(slime);
+   game.debug.text("a is pressed " + shootKey.isDown ,32, 88);
+    //game.debug.text("pixel friction " + bluePixels.getProperty(0,"drag.x"), 32,102);//hasProperty(child, key) 
+   game.debug.text("browser window size =" + myHeight + ",  " + myWidth , 32,116 );
+}
+
+function deathScreen()
+{
+    endText=game.add.text(16, 16, 'You have been converted to a bloody soup by something resembling slime', { fontSize: '32px', fill: '#355' });
+}
+
+
+</script>
+</body>
+</html>
